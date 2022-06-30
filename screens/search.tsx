@@ -1,8 +1,9 @@
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { CenteredButton } from "../components/buttons";
 import { SearchBar } from "../components/searchBar";
 import { SmText } from "../components/text";
 import { Text, View } from "../components/Themed";
@@ -12,6 +13,8 @@ import Colors from "../constants/Colors";
 import { windowHeight, windowWidth } from "../constants/Layout";
 import urls from "../constants/urls";
 import { getValueFor } from "../helpers";
+import FetchData from "../helpers/data/fetchData";
+import FetchDataWithoutToken from "../helpers/data/fetchDataWithoutToken";
 import useColorScheme from "../hooks/useColorScheme";
 import { LOGIN } from "../redux/actions";
 
@@ -102,97 +105,46 @@ const users = [
   },
 ];
 
-const stringToRegex = (str: string) => {
-  // Main regex
-  const main = str.match(/\/(.+)\/.*/)[1];
+// const stringToRegex = (str: string) => {
+//   // Main regex
+//   const main = str.match(/\/(.+)\/.*/)[1];
 
-  // Regex options
-  const options = str.match(/\/.+\/(.*)/)[1];
+//   // Regex options
+//   const options = str.match(/\/.+\/(.*)/)[1];
 
-  // Compiled regex
-  return new RegExp(main, options);
-};
+//   // Compiled regex
+//   return new RegExp(main, options);
+// };
 
 const SearchScreen = () => {
+  const token = useSelector((state: any) => state.auth.token);
   const colorScheme = useColorScheme();
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const [membersList, setMembersList] = useState(users);
   const [refresh, setRefresh] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [saints, setSaints] = useState([]);
-
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState(null);
   const [username, setUsername] = useState(null);
-  const [token, setToken] = useState(null);
+
   const [failGet, setFailGet] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   useEffect(() => {
     setLoading(true);
-    getValueFor(setPassword, setUsername, setFailGet, setLoading).then(
-      (data) => {
-        // if (password != null && username != null) {
-        axios({
-          method: "POST",
-          headers: {
-            ContentType: "application/json",
-          },
-          url: `${urls.root}/auth/login`,
-          data: {
-            username: data?.username,
-            password: data?.password,
-          },
-        })
-          .then((resp) => {
-            setLoading(false);
-            console.log("initial request");
-            setToken(resp.data.token);
-            setFailGet(false);
-            console.log(resp.data);
-            dispatch(
-              LOGIN({
-                loggedIn: true,
-                username: resp.data.user.username,
-                token: resp.data.token,
-              })
-            );
+    FetchData({
+      endpoint: urls.saints,
+      setData: setSaints,
 
-            axios({
-              method: "GET",
-              headers: {
-                ContentType: "application/json",
-                Authorization: `token ${resp.data.token} `,
-              },
-              url: `${urls.root}/api/saints/`,
-            })
-              .then((resp) => {
-                setLoading(false);
-                setSaints(resp.data);
-                console.log(resp.data);
-              })
-              .catch((error) => {
-                setLoading(false);
-                // Alert.alert(
-                //   "An error occured,please check your network and try again"
-                // );
-                console.log(error.response.data);
-                console.log(Object.getOwnPropertyNames(error.response.data));
-                setError(
-                  "Error occured when trying to fetch accountability groups"
-                );
-              });
-          })
-          .catch((error) => {
-            setLoading(false);
-            setFailGet(true);
-            console.log(error);
-            // console.log(Object.getOwnPropertyNames(error));
-          });
-        // }
-      }
-    );
+      onFetchFail: () => {},
+      onFetchSuccess: () => {
+        setLoading(false);
+      },
+      token,
+    });
   }, [refresh]);
   const renderItem: React.FC<{ item: any }> = ({ item }) => (
     <UserView
@@ -206,16 +158,39 @@ const SearchScreen = () => {
 
   return (
     <View>
-      <SearchBar
-        onSearch={() => {
-          setMembersList(
-            membersList.filter((member) => {
-              return member.name.match(stringToRegex(`/${searchText}/i`));
-            })
-          );
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginVertical: windowHeight / 40,
         }}
-        onChangeText={(text: any) => {}}
-      />
+      >
+        <CenteredButton
+          hRatio={10}
+          wRatio={2.5}
+          style={{
+            marginHorizontal: windowWidth / 20,
+          }}
+          radiusRatio={20}
+          title="View Attendances"
+          bgColor={Colors[colorScheme].tint}
+          onPress={() => {
+            navigation.navigate("AttendancesView");
+          }}
+          color={Colors.common.text.foreground}
+        />
+        <SearchBar
+          onSearch={() => {}}
+          // onSearch={() => {
+          //   setMembersList(
+          //     membersList.filter((member) => {
+          //       return member.name.match(stringToRegex(`/${searchText}/i`));
+          //     })
+          //   );
+          // }}
+          onChangeText={(text: any) => {}}
+        />
+      </View>
 
       <View>
         <SmText>Members</SmText>

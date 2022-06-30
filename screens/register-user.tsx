@@ -24,11 +24,22 @@ import { getValueFor } from "../helpers";
 import { LOGIN } from "../redux/actions";
 import SuccessModal from "../components/modal";
 import data from "../data";
+import {
+  minMaxLengthValidator,
+  validatePhoneNumber,
+} from "../helpers/validators";
+import FetchDataWithoutToken from "../helpers/data/fetchDataWithoutToken";
+import PostDataWithoutToken from "../helpers/data/postDataWithoutToken";
+import GroupSetNull, { GroupStringSetNull } from "../helpers/setNull";
+import FetchData from "../helpers/data/fetchData";
+import PostData from "../helpers/data/postData";
 
 export default function UserRegistration() {
-  // const token = useSelector((state: any) => state.auth.token);
+  const token = useSelector((state: any) => state.auth.token);
   const dispatch = useDispatch();
   const [accountabilityGroups, setAccountabilityGroups] = useState(null);
+  const [departments, setDepartments] = useState(null);
+  const [events, setEvents] = useState(null);
   const colorScheme = useColorScheme();
   const [snackVisible, setSnackVisible] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -46,12 +57,10 @@ export default function UserRegistration() {
   const [married, setMarried] = useState("no");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [password, setPassword] = useState(null);
-  const [username, setUsername] = useState(null);
-  const [token, setToken] = useState(null);
-  const [failGet, setFailGet] = useState(false);
   const [age, setAge] = useState(20);
   const [modalVisible, setModalVisible] = useState(false);
+  const [eventDate, setEventDate] = useState(null);
+  const [visitor, setVisitor] = useState("no");
   useEffect(() => {
     if (error != "") {
       setSnackVisible(true);
@@ -63,97 +72,34 @@ export default function UserRegistration() {
 
   useEffect(() => {
     setLoading(true);
+    FetchData({
+      endpoint: urls.events,
+      setData: setEvents,
 
-    getValueFor(setPassword, setUsername, setFailGet, setLoading).then(
-      (data) => {
-        // if (password != null && username != null) {
-        axios({
-          method: "POST",
-          headers: {
-            ContentType: "application/json",
-          },
-          url: `${urls.root}/auth/login`,
-          data: {
-            username: data?.username,
-            password: data?.password,
-          },
-        })
-          .then((resp) => {
-            setLoading(false);
-            console.log("initial request");
-            setToken(resp.data.token);
-            setFailGet(false);
-            console.log(resp.data);
-            dispatch(
-              LOGIN({
-                loggedIn: true,
-                username: resp.data.user.username,
-                token: resp.data.token,
-              })
-            );
-
-            axios({
-              method: "GET",
-              headers: {
-                ContentType: "application/json",
-                Authorization: `token ${resp.data.token} `,
-              },
-              url: `${urls.root}/api/accountabilitygroups/`,
-            })
-              .then((resp) => {
-                setLoading(false);
-                setAccountabilityGroups(resp.data);
-                console.log(resp.data);
-              })
-              .catch((error) => {
-                setLoading(false);
-                // Alert.alert(
-                //   "An error occured,please check your network and try again"
-                // );
-                console.log(error.response.data);
-                console.log(Object.getOwnPropertyNames(error.response.data));
-                setError(
-                  "Error occured when trying to fetch accountability groups"
-                );
-              });
-          })
-          .catch((error) => {
-            setLoading(false);
-            setFailGet(true);
-            console.log(error);
-            // console.log(Object.getOwnPropertyNames(error));
-          });
-        // }
-      }
-    );
+      onFetchFail: () => {},
+      onFetchSuccess: () => {},
+      token: token,
+    });
+    FetchData({
+      endpoint: urls.departments,
+      setData: setDepartments,
+      onFetchFail: () => {},
+      onFetchSuccess: () => {},
+      token: token,
+    });
+    FetchData({
+      endpoint: urls.groups,
+      setData: setAccountabilityGroups,
+      onFetchFail: (error: any) => {
+        console.error(error);
+      },
+      onFetchSuccess: (data: any) => {
+        setLoading(false);
+      },
+      token: token,
+    });
   }, []);
-  function minLengthValidator(string: string, length: number) {
-    if (string.length < length) {
-      return false;
-    }
-    return true;
-  }
-  function maxLengthValidator(string: string, length: number) {
-    if (string.length > length) {
-      return false;
-    }
-    return true;
-  }
-  function minMaxLengthValidator(
-    string: string,
-    minlength: number,
-    maxlength: number
-  ) {
-    if (string.length < minlength && string.length > maxlength) {
-      return false;
-    }
-    return true;
-  }
-  function validatePhoneNumber(input_str: string) {
-    var re = /^\(?(\d{3})\)?[- ]?(\d{3})[- ]?(\d{4})$/;
 
-    return re.test(input_str);
-  }
   function ValidateData() {
     if (!minMaxLengthValidator(firstName, 2, 10)) {
       setError("the first name  must be more than 2 ");
@@ -163,8 +109,8 @@ export default function UserRegistration() {
       setError("the length of last name must be more than 2");
       return false;
     }
-    if (IDNumber.length !== 7) {
-      setError("the length of ID must be 7 digits");
+    if (IDNumber.length > 9) {
+      setError("the length of ID must not be more than 7 digits");
       return false;
     }
     if (!minMaxLengthValidator(residence, 3, 12)) {
@@ -202,7 +148,7 @@ export default function UserRegistration() {
       return true;
     }
   }
-  if (accountabilityGroups === null) {
+  if (accountabilityGroups === null || events === null) {
     return <ActivityIndicator animating={true} size={windowWidth / 10} />;
   } else {
     return (
@@ -211,7 +157,6 @@ export default function UserRegistration() {
           style={{
             width: windowWidth * 0.9,
             marginTop: windowHeight * 0.02,
-            // justifyContent: "space-between",
             flexDirection: "column",
             flex: 1,
           }}
@@ -336,16 +281,7 @@ export default function UserRegistration() {
                 setOccupation(text);
               }}
             />
-            <IconInput
-              fontFamily={fonts.Regular}
-              name="thermometer-half"
-              iconColor={Colors[colorScheme].tint}
-              family="fontawesome5"
-              iconSize={windowWidth / 15}
-              placeholder="eg.33"
-              label="Temperature"
-              change={(text: string) => {}}
-            />
+
             <DropdownSelect
               data={data.counties}
               onSelect={(e: any, i: any) => {
@@ -376,10 +312,32 @@ export default function UserRegistration() {
               iconFamily="Fontawesome5"
               iconName="ring"
             />
+            <DropdownSelect
+              data={["yes", "no"]}
+              onSelect={(e: any, i: any) => {
+                setMarried(e);
+              }}
+              label="Visitor"
+              searchPlaceholder="yes/no"
+              iconFamily="MaterialIcons"
+              iconName="directions-walk"
+            />
             <SuccessModal
               name={firstName}
               modalVisible={modalVisible}
               setModalVisible={setModalVisible}
+            />
+
+            <ObjectDropdownSelect
+              data={departments}
+              onSelect={(e: any, i: any) => {
+                setDepartments(e.id);
+              }}
+              label="Department"
+              searchPlaceholder="Department"
+              itemValue="name"
+              iconFamily="Fontawesome5"
+              iconName="building"
             />
             <ObjectDropdownSelect
               data={accountabilityGroups}
@@ -409,14 +367,8 @@ export default function UserRegistration() {
                     [
                       [firstName, "The first name "],
                       [lastName, "The last name"],
-                      [homeCounty, "The home county"],
-                      [residence, "the residence"],
                       [gender, "the gender"],
-                      [occupation, "The occupation"],
                       [phone, "the phone number"],
-                      [kinContact, "the kin contact"],
-                      [IDNumber, "the id number field"],
-                      [kinName, "the kin name"],
                     ],
                     setError,
                     "cannot be empty"
@@ -425,48 +377,56 @@ export default function UserRegistration() {
                   if (ValidateData()) {
                     setLoading(true);
                     NetInfo.fetch().then((state) => {
-                      if (state.isConnected) {
-                        axios({
-                          method: "post",
-                          headers: {
-                            ContentType: "application/json",
-                            Authorization: `token ${token} `,
-                          },
-                          url: `${urls.root}/api/saints/`,
-                          data: {
-                            first_name: firstName,
-                            last_name: lastName,
-                            home_county: homeCounty,
-                            accountability_group: accountabilityGroup,
-                            id_number: IDNumber,
-                            kin_name: kinName,
-                            age: age,
-                            kin_phone: kinContact,
-                            residence: residence,
-                            gender: gender,
-                            occupation: occupation,
-                            married: married == "yes" ? true : false,
-                            phone_number: phone,
-                          },
-                        })
-                          .then((resp) => {
-                            setLoading(false);
-                            console.log(resp);
-                            setModalVisible(true);
-                          })
-                          .catch((error) => {
-                            setLoading(false);
-                            // Alert.alert(
-                            //   "An error occured,please check your network and try again"
-                            // );
-                            console.log(error.response.data);
-                            console.log(
-                              Object.getOwnPropertyNames(error.response.data)
-                            );
-                            setError("Some error occured");
+                      if (events !== null) {
+                        if (state.isConnected) {
+                          PostData({
+                            endpoint: urls.saints,
+                            userData: {
+                              first_name: firstName,
+                              last_name: lastName,
+                              home_county: homeCounty,
+                              accountability_group: accountabilityGroup,
+                              id_number: IDNumber,
+                              kin_name: kinName,
+                              age: age,
+                              kin_phone: kinContact,
+                              residence: residence,
+                              gender: gender,
+                              occupation: occupation,
+                              married: married == "yes" ? true : false,
+                              phone_number: phone,
+                              visitor: visitor == "yes" ? true : false,
+                            },
+                            onPostFail: (error: any) => {
+                              setLoading(false);
+                              console.log(error.response);
+                              setError(error.message);
+                            },
+                            onPostSuccess: () => {
+                              setLoading(false);
+                              setModalVisible(true);
+                              setError("");
+                              GroupStringSetNull([
+                                setFirstName,
+                                setLastName,
+                                setHomeCounty,
+                                setResidence,
+                                setGender,
+                                setOccupation,
+                                setPhone,
+                                setKinContact,
+                                setIDNumber,
+                                setKinName,
+                              ]);
+                              GroupSetNull([setAccountabilityGroup]);
+                            },
+                            token: token,
                           });
-                      } else {
-                        setError("Cannot register a user when you are offline");
+                        } else {
+                          setError(
+                            "Cannot register a user when you are offline"
+                          );
+                        }
                       }
                     });
                   }

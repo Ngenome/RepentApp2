@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Colors from "../constants/Colors";
 import fonts from "../constants/fonts";
 import { windowHeight, windowWidth } from "../constants/Layout";
+import { padWithZero } from "../helpers/fillWithZeros";
 import useColorScheme from "../hooks/useColorScheme";
 import { Text, View } from "./Themed";
 
@@ -52,6 +53,7 @@ export const EventCard: React.FC<{
       </View>
       <View
         style={{
+          padding: windowWidth / 30,
           flexDirection: "row",
           justifyContent: "space-between",
           borderRadius: windowWidth / 20,
@@ -63,7 +65,7 @@ export const EventCard: React.FC<{
             color: Colors[colorScheme].tint,
           }}
         >
-          {eventDate.getDate()}/ {eventDate.getMonth()}
+          Date: {eventDate.getDate()}/{eventDate.getMonth()}
         </Text>
         <Text
           style={{
@@ -71,7 +73,7 @@ export const EventCard: React.FC<{
             color: Colors[colorScheme].tint,
           }}
         >
-          {eventDate.getHours()} :{eventDate.getMinutes().toFixed(2)} hrs
+          {eventDate.getHours()}:{padWithZero(eventDate.getMinutes(), 2)} hrs
         </Text>
       </View>
     </View>

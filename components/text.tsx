@@ -70,3 +70,24 @@ export const DangerText: React.FC<{
     </Text>
   );
 };
+export const MDText: React.FC<{
+  styles?: StyleProp<TextStyle>;
+  color?: string;
+}> = (props) => {
+  const colorScheme = useColorScheme();
+  return (
+    <Text
+      style={[
+        {
+          color: POD(props.color, Colors[colorScheme].text),
+          fontFamily: fonts.Regular,
+          fontSize: fontSizes.md,
+        },
+        props.styles,
+      ]}
+      {...props}
+    >
+      {props.children}
+    </Text>
+  );
+};

@@ -22,11 +22,12 @@
       "supportsTablet": true
     },
     "android": {
-        "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.interstellarcg.Repent"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

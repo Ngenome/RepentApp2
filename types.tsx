@@ -16,12 +16,20 @@ declare global {
   }
 }
 
+interface DetailScreenParams {
+  event: string;
+  id: string;
+}
 export type RootStackParamList = {
   Root: NavigatorScreenParams<RootTabParamList> | undefined;
   Modal: undefined;
   NotFound: undefined;
-  Login: undefined;
+  Login: object;
   loading: undefined;
+  AttendancesView: undefined;
+  AttendanceDetailScreen: DetailScreenParams;
+  GroupAttendanceDetailScreen: DetailScreenParams;
+  SaintViewScreen: any;
 };
 
 export type RootStackScreenProps<Screen extends keyof RootStackParamList> =
@@ -31,6 +39,8 @@ export type RootTabParamList = {
   Home: undefined;
   RegisterUser: undefined;
   Search: undefined;
+  AddEvent: undefined;
+  AddAttendance: undefined;
 };
 
 export type RootTabScreenProps<Screen extends keyof RootTabParamList> =
@@ -38,3 +48,11 @@ export type RootTabScreenProps<Screen extends keyof RootTabParamList> =
     BottomTabScreenProps<RootTabParamList, Screen>,
     NativeStackScreenProps<RootStackParamList>
   >;
+export interface AttendanceDetailRouteParams {
+  route: {
+    params: {
+      id: string;
+      event: string;
+    };
+  };
+}
